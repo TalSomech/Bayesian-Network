@@ -106,12 +106,12 @@ public class Graph {
             if (shades.contains(node)) {
                 came_child.addAll(node.parents);//add parents to came child so in time they will be added to the queue
                 neis = node.parents;//adding the parents as neighbors of a node
-                neis.addAll(node.children);//adding the children because they can also be traversed
             } else {
                 if ( came_child.contains(node)) {//add all parents to the neighbors of the
                     neis.addAll(node.parents);
                     came_child.addAll(node.parents);
-                } else {
+                }
+                else {
                     neis.addAll(node.children);
                 }
             }
