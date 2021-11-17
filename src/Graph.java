@@ -29,7 +29,6 @@ public class Graph {
             //Get all students
             NodeList defs = document.getElementsByTagName("DEFINITION");//getting the table (for...given...table)
             NodeList vars = document.getElementsByTagName("VARIABLE");//list of the variables
-
             for (int i = 0; i < vars.getLength(); i++) {
                 Node node = vars.item(i);
                 if (node.getNodeType() == Node.ELEMENT_NODE) {
@@ -39,9 +38,11 @@ public class Graph {
                     Vari vari = new Vari(name);
                     for (int j = 0; j < outcomes.getLength(); j++) {
                         vari.outcomes.add(outcomes.item(j).getTextContent());
+                        //k.put(name,name+'='+outcomes.item(j).getTextContent());
                     }
                     System.out.println("Name : " + elm.getElementsByTagName("NAME").item(0).getTextContent());//prints the name of the variable will be deleted later
                     graph.put(name, vari);
+                    vari.init_node();//initiates the node
                 }
             }
             for (int i = 0; i < defs.getLength(); i++) {
@@ -52,20 +53,46 @@ public class Graph {
                 Vari _cur_vari = graph.get(_curr);
                 NodeList givens = elm.getElementsByTagName("GIVEN");
                 String[] table = elm.getElementsByTagName("TABLE").item(0).getTextContent().split(" ");
+                //k.addAll(_cur_vari.outcomes);
                 for (int j = 0; j < givens.getLength(); j++) {
                     Vari parent = graph.get(givens.item(j).getTextContent());
                     parent.children.add(_cur_vari);
-                    _cur_vari.parents.add(parent);
+                     _cur_vari.parents.add(parent);
+                    _cur_vari.add_st(parent);
                 }
+                ArrayList<String> keys=new ArrayList<>(_cur_vari.CPT.keySet());
+                int j=0;
                 for (String s : table) {
-                    _cur_vari.CPT.add(Float.parseFloat(s));
+                    _cur_vari.CPT.put(keys.get(j),Float.parseFloat(s));
+                    j++;
+                    //key.next();
                 }
             }
+            int t=0;
         } catch (Exception e) {
            e.printStackTrace();
         }
     }
+    public LinkedHashMap<String, Float> get_table(String [] shades, Vari node){
+        LinkedHashMap<String,Float> factor=new LinkedHashMap<>();
+        for(Map.Entry<String,Float> entry:node.CPT.entrySet()){
+            for (String shade : shades) {
+                if (entry.getKey().contains(shade)) {
+                    factor.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+        return factor;
+    }
 
+    public void var_eli(){
+
+
+
+
+
+
+    }
     /**
      * parse the query and send it to the bayes ball implementation
      * @param query
@@ -81,6 +108,21 @@ public class Graph {
             shades.add(graph.get(shade));
         }
         return bayes_ball_imp(graph.get(nodes[0]),graph.get(nodes[1]),shades);
+    }
+    ArrayList<ArrayList<String>> parse_query(String s){
+        String [] split=s.split("\\|");
+        String query=split[0].substring(2);
+        String [] spl_evi_eli=split[1].split("\\)");//split the elimination and the evidence
+        String [] evi=spl_evi_eli[0].split(",");
+        String [] eli_seq_p= spl_evi_eli[1].split("-"); //elimination sequence
+        ArrayList<String> qry_evi=new ArrayList<>();
+        ArrayList<String> eli_seq = new ArrayList<>(Arrays.asList(eli_seq_p));
+        qry_evi.add(query);
+        qry_evi.addAll(Arrays.asList(evi));
+        ArrayList<ArrayList<String>> rtrn=new ArrayList<>();
+        rtrn.add(qry_evi);
+        rtrn.add(eli_seq);
+        return rtrn;
     }
 
     /**
@@ -105,7 +147,7 @@ public class Graph {
             System.out.print(node.name + " ");
             if (shades.contains(node)) {
                 came_child.addAll(node.parents);//add parents to came child so in time they will be added to the queue
-                neis = node.parents;//adding the parents as neighbors of a node
+                neis =node.parents;//adding the parents as neighbors of a node
             } else {
                 if ( came_child.contains(node)) {//add all parents to the neighbors of the
                     neis.addAll(node.parents);
@@ -128,18 +170,22 @@ public class Graph {
         }
         return false;
     }
+    public void srt(){
+
+    }
+
+
 
     /**
      * this annoying function is used to get a string like "T F T" or "B1 B3 B5" etc.
      * and convert it to an index in the CPT array
-     *
      */
     public static void convert(String eq, Vari node) {
         String[] vars = eq.split(" ");
-        int idx = (int) (node.outcomes.indexOf(vars[0]) * Math.pow(2, node.parents.size()));//get the index for the first one
+        int idx = (int) (node.outcomes.indexOf(vars[0]) * Math.pow(node.outcomes.size(), node.parents.size()));//get the index for the first one
         Vari parent;
         for (int i = 1; i < vars.length; i++) {
-            parent = node.parents.get(i - 1);
+            parent = node.parents.get(i-1);
            // idx += Math.pow(2, node.parents.size() - i) * parent.outcomes.indexOf(vars[i]);// this one is only for TF TF TFTT etc , the one below .. im not 100% sure it works
             idx += Math.pow(parent.outcomes.size(), node.parents.size() - i) * parent.outcomes.indexOf(vars[i]);// i get the index by multiplying the number of outcomes of each parent with the index of the value of the variable
         }
