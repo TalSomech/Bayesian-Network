@@ -10,6 +10,7 @@ public class Vari {
     //LinkedHashMap<String,Float> cps;
     //ArrayList<Vari> pts;
     LinkedHashMap<String,Float> CPT;
+
     ArrayList<String> outcomes;
     ArrayList<Vari> children;
     //ArrayList<Float> CPT;
@@ -24,6 +25,7 @@ public class Vari {
             CPT.put(name+"="+out,(float)-1);
         }
     }
+
     public void add_st(Vari pt){
         ArrayList<String> kn = new ArrayList<>(CPT.keySet());
         ArrayList<String> temp=new ArrayList<>();
