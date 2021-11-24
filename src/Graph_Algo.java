@@ -3,8 +3,9 @@ import java.util.stream.Collectors;
 
 public class Graph_Algo {
     Graph g;
-    public Graph_Algo(String graph){
-        g=new Graph(graph);
+
+    public Graph_Algo(String graph) {
+        g = new Graph(graph);
     }
 
     /**
@@ -15,27 +16,27 @@ public class Graph_Algo {
      * @return
      */
     public LinkedHashMap<String, Float> local_cpt(HashMap<String, String> evidence, Vari node) {
-        for (Map.Entry<String, String> evi : evidence.entrySet()) {
+        for (Map.Entry<String, String> evi : evidence.entrySet()) {// since we are getting all the evidence we are interested only in the parents
             if (!node.parents.contains(g.graph.get(evi.getKey()))) {
                 evidence.remove(evi.getKey());
             }
         }
 
-        if (evidence.isEmpty())
+        if (evidence.isEmpty())//if the evidence is empty it means that this CPT only column is the node itself
             return node.CPT;
         LinkedHashMap<String, Float> factor = new LinkedHashMap<>();
         boolean flag;
         String new_key;
-        for (Map.Entry<String, Float> entry : node.CPT.entrySet()) {
+        for (Map.Entry<String, Float> entry : node.CPT.entrySet()) {//iterate over all of the CPT entries
             flag = true;
-            for (String evi : evidence.keySet()) {
+            for (String evi : evidence.keySet()) {//get only the row which corresponding to all the evidence
                 if (!entry.getKey().contains(evi)) {
                     flag = false;
                     //factor.put(entry.getKey().replace(evi + ",", ""), entry.getValue());
                     break;
                 }
             }
-            if (flag) {
+            if (flag) {//create new row without the specific evidence in the columns
                 new_key = entry.getKey();
                 for (String evi : evidence.keySet()) {
                     //new_key=entry.getKey().replace(evi + ",", "");
@@ -47,6 +48,7 @@ public class Graph_Algo {
         }
         return factor;
     }
+
     /**
      * this function is supposed to join between two tables on the qry evi , it currently doesn't support multiple
      * vari like table1= A B C table 2= ABD ,qry=A
@@ -117,14 +119,15 @@ public class Graph_Algo {
         }
         return answer;
     }
+
     /**
      * parse the query and send it to the bayes ball implementation
      */
-    boolean  bayes_ball_query(String query) {
+    boolean bayes_ball_query(String query) {
         String[] qry = query.split("\\|");
         String[] nodes = qry[0].split("-");
         ArrayList<Vari> shades = new ArrayList<>();
-        if(qry.length>1) {
+        if (qry.length > 1) {
             String[] _shades_prep = qry[1].split(",");
             for (String shade : _shades_prep) {
                 shade = shade.substring(0, shade.indexOf('='));
@@ -133,6 +136,7 @@ public class Graph_Algo {
         }
         return bayes_ball_imp(g.graph.get(nodes[0]), g.graph.get(nodes[1]), shades);
     }
+
     /**
      * bayes-ball algorithm
      * an implemantation of the bayes ball algorithm which gets a start node, dest node , and an arraylist of evidence
@@ -146,21 +150,20 @@ public class Graph_Algo {
         ArrayList<Vari> came_child = new ArrayList<>();
         //visited.add(node);
         queue.add(node);
-        ArrayList<Vari> neis=new ArrayList<>();//adj[s] (as in bfs) but we need to know to put the correct nodes each time
-       // neis = node.children;//add all the children to the neighbors of the start node
+        ArrayList<Vari> neis = new ArrayList<>();//adj[s] (as in bfs) but we need to know to put the correct nodes each time
+        // neis = node.children;//add all the children to the neighbors of the start node
         came_child.add(node);//"came from a child so it can go to its parents"
         while (queue.size() != 0) {
             // Dequeue a vertex from queue and print it
             node = queue.poll();
             System.out.print(node.name + " ");
             if (shades.contains(node)) {
-                if(came_child.contains(node)){
+                if (came_child.contains(node)) {
                     continue;
                 }
                 came_child.addAll(node.parents);//add parents to came child so in time they will be added to the queue
                 neis = node.parents;//adding the parents as neighbors of a node
-            }
-            else {
+            } else {
                 if (came_child.contains(node)) {//add all parents to the neighbors of the
                     neis.addAll(node.parents);
                     neis.addAll(node.children);
@@ -185,38 +188,41 @@ public class Graph_Algo {
 
     /**
      * This function eliminates the hidden variable from a factor after we joined all of it's corresponding factors
+     *
      * @param table
      * @param hidden
      * @return
      */
-    public LinkedHashMap<String,Float> eliminate_factor(LinkedHashMap<String,Float> table,Vari hidden){
-        LinkedHashMap<String,Float> answer=new LinkedHashMap<>();
+    public LinkedHashMap<String, Float> eliminate_factor(LinkedHashMap<String, Float> table, Vari hidden) {
+        LinkedHashMap<String, Float> answer = new LinkedHashMap<>();
         Iterator<Map.Entry<String, Float>> keys = table.entrySet().iterator();
-        Map.Entry<String, Float> it=keys.next();
+        Map.Entry<String, Float> it = keys.next();
         String key;
-        List<String> outs=hidden.outcomes;
-        List<String> visited=new ArrayList<>();
-        Float _prob=(float)0;
-        while(visited.size()!=table.size()){//!it.getKey().contains(hidden.name+'='+outs.get(1))){//Iterate over the table until we get to the first time we see a different outcome
-            key=it.getKey();//get the key of current entry
-            if(visited.contains(key))
+        List<String> outs = hidden.outcomes;
+        List<String> visited = new ArrayList<>();
+        Float _prob = (float) 0;
+        while (visited.size() != table.size()) {//!it.getKey().contains(hidden.name+'='+outs.get(1))){//Iterate over the table until we get to the first time we see a different outcome
+            key = it.getKey();//get the key of current entry
+            if (visited.contains(key))
                 continue;
-            _prob+=it.getValue();//getting the value
+            _prob += it.getValue();//getting the value
             for (int j = 1; j < outs.size(); j++) {//Iterate over all the outcomes of the hidden node so we can eliminate it
-                key=key.replace(hidden.name+'='+outs.get(j-1),hidden.name+'='+outs.get(j) );//change the outcome
+                key = key.replace(hidden.name + '=' + outs.get(j - 1), hidden.name + '=' + outs.get(j));//change the outcome
                 visited.add(key);
-                _prob+=table.get(key);//add the table value
+                _prob += table.get(key);//add the table value
             }
-            key=key.replace(hidden.name+'='+outs.get(outs.size()-1),"");
-            answer.put(key,_prob);
-            _prob=(float)0;
-            it=keys.next();
+            key = key.replace(hidden.name + '=' + outs.get(outs.size() - 1), "");
+            answer.put(key, _prob);
+            _prob = (float) 0;
+            it = keys.next();
         }
         return answer;
     }
+
     /**
      * this function receives a string which is a VE query and parse it
      * so it will return the query,evidence and the elimination sequence
+     *
      * @param s-string on which we parse the query
      * @return the first index includes the qry and the evidence , second index contains the elimination sequence
      */
@@ -236,5 +242,31 @@ public class Graph_Algo {
         return rtrn;
     }
 
+    public ArrayList<Vari> relevant_hidden(ArrayList<Vari> hidden,ArrayList<Vari> relevant) {
+        Vari query=relevant.get(0);//query node
+        for (Vari node: hidden) {
+            if(!find_ancestor(node,relevant)) {// Iterate over
+                hidden.remove(node);
+            }
+            else{
+                relevant.remove(query);
+                if(bayes_ball_imp(node,relevant.get(0),relevant)){
+                    hidden.remove(node);
+                }
+                relevant.add(0,query);
+            }
+        }
+        return hidden;
+    }
 
+    public boolean find_ancestor(Vari hidden, ArrayList<Vari> relevant) {
+        if (hidden.children.stream().anyMatch(relevant::contains))
+            return true;
+        else {
+            for (Vari child:hidden.children) {
+                return find_ancestor(child,relevant);
+            }
+        }
+        return false;
+    }
 }
