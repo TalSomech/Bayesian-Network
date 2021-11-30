@@ -29,20 +29,28 @@ public class Vari {
     public void add_st(Vari pt){
         ArrayList<String> kn = new ArrayList<>(CPT.keySet());
         ArrayList<String> temp=new ArrayList<>();
-        String k="";
-        int t=0;
-        for(int i=0;i<kn.size();i++){
-            k=kn.get(i);
-            t=0;
-            for (int j = 0; j < pt.outcomes.size(); j++) {
-                k=k+","+pt.name+"="+pt.outcomes.get(j);
-                temp.add(k);
-                //if(t!=kn.size()-1) {
-                    k = kn.get(i);
-               // }
+        String k,st;
+        int idx;
+            for (int j = 0; j < kn.size(); j+=outcomes.size()) {
+                for(int i=0;i<pt.outcomes.size();i++){
+                for (int l = 0; l < outcomes.size(); l++) {
+                    k = name + '=' + outcomes.get(l) ;
+                    st = kn.get(j);
+                    idx=st.indexOf(',');
+                    if(st.contains(",")) {
+                        st=st.substring(idx);
+                        k += st + ',' + pt.name + "=" + pt.outcomes.get(i);
+                    }
+                    else{
+                        k+=',' + pt.name + "=" + pt.outcomes.get(i);
+                    }
+
+                    temp.add(k);
+                }
             }
         }
         CPT.clear();
+        int gd=0;
         for (String s : temp) {
             CPT.put(s, (float) -1.0);
         }

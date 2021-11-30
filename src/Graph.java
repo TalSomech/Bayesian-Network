@@ -13,13 +13,13 @@ public class Graph {
     public  HashMap<String, Vari> graph;
 
     public Graph(String gph) {
-        graph = load_graph(gph);
+        load_graph(gph);
     }
 
     /**
      * loads the graph from the file
      */
-    public  HashMap<String ,Vari> load_graph(String path) {
+    public  void load_graph(String path) {
         graph = new HashMap<>();
         try {
             DocumentBuilderFactory dBfactory = DocumentBuilderFactory.newInstance();
@@ -41,7 +41,7 @@ public class Graph {
                         vari.outcomes.add(outcomes.item(j).getTextContent());
                         //k.put(name,name+'='+outcomes.item(j).getTextContent());
                     }
-                    System.out.println("Name : " + elm.getElementsByTagName("NAME").item(0).getTextContent());//prints the name of the variable will be deleted later
+                    //System.out.println("Name : " + elm.getElementsByTagName("NAME").item(0).getTextContent());//prints the name of the variable will be deleted later
                     graph.put(name, vari);
                     vari.init_node();//initiates the node
                 }
@@ -50,7 +50,7 @@ public class Graph {
                 Node node = defs.item(i);
                 Element elm = (Element) node;
                 String _curr = elm.getElementsByTagName("FOR").item(0).getTextContent();//current node
-                System.out.println(_curr);
+                //System.out.println(_curr);
                 Vari _cur_vari = graph.get(_curr);
                 NodeList givens = elm.getElementsByTagName("GIVEN");
                 String[] table = elm.getElementsByTagName("TABLE").item(0).getTextContent().split(" ");
@@ -61,6 +61,14 @@ public class Graph {
                     _cur_vari.add_st(parent);
                 }
                 ArrayList<String> keys = new ArrayList<>(_cur_vari.CPT.keySet());
+                //Iterator<String> keys = _cur_vari.CPT.keySet().iterator();
+                //String key,t=keys.next();
+                //int eq_idx=t.indexOf('=');
+//                while(!t.contains(_cur_vari.outcomes.get(1))){
+//                    for (int j = 1; j < _cur_vari.outcomes.size(); j++) {
+//                        key=t.replace(_curr+'='+_cur_vari.outcomes.get(j-1),_curr+'='+_cur_vari.outcomes.get(j));
+//                    }
+//                }
                 int j = 0;
                 for (String s : table) {
                     _cur_vari.CPT.put(keys.get(j), Float.parseFloat(s));
@@ -70,7 +78,7 @@ public class Graph {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return graph;
+       // return graph;
     }
 
 
@@ -88,15 +96,15 @@ public class Graph {
             idx += Math.pow(parent.outcomes.size(), node.parents.size() - i) * parent.outcomes.indexOf(vars[i]);// i get the index by multiplying the number of outcomes of each parent with the index of the value of the variable
         }
     }
-
-    public static void main(String[] args) {
-        Graph_Algo g_a=new Graph_Algo("./Data/alarm_net.xml");
-        System.out.println(g_a.bayes_ball_query("B-E|J=T"));
-        //Graph g;
-        //load_graph("./Data/alarm_net.xml");
-
-        // Graph g=load_graph();
-    }
+//
+//    public static void main(String[] args) {
+//        Graph_Algo g_a=new Graph_Algo("./Data/alarm_net.xml");
+//        System.out.println(g_a.bayes_ball_query("B-E|J=T"));
+//        //Graph g;
+//        //load_graph("./Data/alarm_net.xml");
+//
+//        // Graph g=load_graph();
+//    }
 }
 
 
