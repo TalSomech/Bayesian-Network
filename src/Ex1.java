@@ -7,10 +7,13 @@ public class Ex1 {
         try{
             BufferedReader br = new BufferedReader(new FileReader("input.txt"));
             String line=br.readLine();
-            Graph_Algo _graph_algo=new Graph_Algo("./Data/"+line);
+            Graph_Algo _graph_algo=new Graph_Algo(line);
+            PrintStream fileStream = new PrintStream("output.txt");
+
             while ((line=br.readLine())!=null) {
-                _graph_algo.query(line);
+                fileStream.println(_graph_algo.query(line));
             }
+            fileStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -3,89 +3,63 @@ import java.util.*;
 
 public class Vari {
     String name;
-    //ArrayList<Vari> parents;
-    //String parents_indx;
-    //HashMap<String,Vari> parents;
     ArrayList<Vari> parents;
-    //LinkedHashMap<String,Float> cps;
-    //ArrayList<Vari> pts;
-    LinkedHashMap<String,Float> CPT;
-
+    LinkedHashMap<String, Float> CPT;
     ArrayList<String> outcomes;
     ArrayList<Vari> children;
-    //ArrayList<Float> CPT;
-    //ashMap<String, Float> cps;
-
     public Vari() {
 
     }
-    public void init_node(){
-        for (String out:
-             outcomes) {
-            CPT.put(name+"="+out,(float)-1);
+
+    public void init_node() {
+        for (String out :
+                outcomes) {
+            CPT.put(name + "=" + out, (float) -1);
         }
     }
 
-    public void add_st(Vari pt){
-        ArrayList<String> kn = new ArrayList<>(CPT.keySet());
-        ArrayList<String> temp=new ArrayList<>();
-        String k,st;
+    /**
+     * this function is used to receive a new parent and add's its values to the CPT so all the CPT's will be ordered
+     * just like in class
+     *
+     * @param pt- parent node
+     */
+    public void add_st(Vari pt) {
+        ArrayList<String> cpt_copy = new ArrayList<>(CPT.keySet());//a deep copy of the cpt because we don't want to change it
+        ArrayList<String> temp = new ArrayList<>();
+        String k, st;
         int idx;
-            for (int j = 0; j < kn.size(); j+=outcomes.size()) {
-                for(int i=0;i<pt.outcomes.size();i++){
+        /*this iterates over the current CPT so we can add the parent onto the current CPT*/
+        for (int j = 0; j < cpt_copy.size(); j += outcomes.size()) {
+            /*this for loop is used to iterate over all the outcomes of the parents*/
+            for (int i = 0; i < pt.outcomes.size(); i++) {
+                /*this iterates over this node's outcomes*/
                 for (int l = 0; l < outcomes.size(); l++) {
-                    k = name + '=' + outcomes.get(l) ;
-                    st = kn.get(j);
-                    idx=st.indexOf(',');
-                    if(st.contains(",")) {
-                        st=st.substring(idx);
+                    /*these 6-7 lines are just for syntax but it takes the current row from this node's CPT and just sort of sticks a new variable to it*/
+                    k = name + '=' + outcomes.get(l);
+                    st = cpt_copy.get(j);
+                    idx = st.indexOf(',');
+                    if (st.contains(",")) {
+                        st = st.substring(idx);
                         k += st + ',' + pt.name + "=" + pt.outcomes.get(i);
+                    } else {
+                        k += ',' + pt.name + "=" + pt.outcomes.get(i);
                     }
-                    else{
-                        k+=',' + pt.name + "=" + pt.outcomes.get(i);
-                    }
-
                     temp.add(k);
                 }
             }
         }
         CPT.clear();
-        int gd=0;
         for (String s : temp) {
             CPT.put(s, (float) -1.0);
         }
     }
 
     public Vari(String name) {
-        //parents_indx="";
         this.name = name;
         outcomes = new ArrayList<>();
         children = new ArrayList<>();
         parents = new ArrayList<>();
-       // CPT = new ArrayList<>();
-        CPT=new LinkedHashMap<>();
-        //table=new ArrayList<>();
+        CPT = new LinkedHashMap<>();
     }
-
-//    public int[] get_table(String[] evidence) {
-//        String[] split;
-//        int[] table;
-//        String t;
-//        for (String evi : evidence) {
-//            split = evi.split("=");
-//
-//            String[][] ot = new String[parents.size()][];
-//            ArrayList<ArrayList<String>> outs = new ArrayList<>();
-//            outs.add(0, outcomes);
-//            //ot[1]=outcomes.toArray(new String[0]);
-//            for (int i = 1; i < parents.size(); i++) {
-//                if (!parents.get(i).name.equals(split[0])) {
-//                    outs.add(i, parents.get(i).outcomes);
-//                }
-//            }
-//            int t= parents.indexOf();
-//        }
-//        return null;
-//    }
-
 }

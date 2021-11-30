@@ -1,8 +1,9 @@
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Graph_Algo {
     Graph g;
-    int doubs, add;
+    int doubs, add, counter;
 
     public Graph_Algo(String graph) {
         g = new Graph(graph);
@@ -10,35 +11,40 @@ public class Graph_Algo {
         doubs = 0;
     }
 
-
-    public void query(String qry) {
+    /**
+     * this is the first function which send the query to the right algorithm
+     * @param qry-a String of the query
+     * @return
+     */
+    public String query(String qry) {
         if (qry.contains("P(")) {
             float t = var_elimation(qry);
-            System.out.printf("%.5f,%d,%d", t, this.add, this.doubs);
-            System.out.println();
-            //System.out.println(','+this.add+','+this.doubs);//+','+this.add+','+this.doubs);
+            counter++;
+            String message = String.format("%.5f,%d,%d", t, this.add, this.doubs);
             this.add = 0;
             this.doubs = 0;
+            return message;
         } else {
             if (bayes_ball_query(qry)) {
-                System.out.println("yes");
+                return "yes";
             } else {
-                System.out.println("no");
+                return "no";
             }
         }
     }
 
+    /**
+     * so this function uses all other function and combines them to the whole variable elimination algorithm
+     */
     public Float var_elimation(String qry) {
-        ArrayList<ArrayList<String>> _qry_data = parse_query(qry);
+        ArrayList<ArrayList<String>> _qry_data = parse_query(qry);//data of the string
         String _qry = _qry_data.get(0).get(0);
         Vari _qry_var = g.graph.get(_qry.substring(0, _qry.indexOf('=')));//get the query variable
-        //_qry_data.get(0).remove(0);
         HashMap<Vari, String> evi = new HashMap<>();
         int idx;
-        //_qry_data.get(0).remove(0);
-        ArrayList<Vari> hidden = new ArrayList<>();//,evi=new ArrayList<>();
+        ArrayList<Vari> hidden = new ArrayList<>();
         for (String evidence : _qry_data.get(0)) {
-            idx = evidence.indexOf('=');
+            idx = evidence.indexOf('=');//separate between the variable and value of each evidence+the query
             if (idx > -1)
                 evi.put(g.graph.get(evidence.substring(0, idx)), evidence.substring(idx + 1));
         }//get an Arraylist of the evidence variable
@@ -46,18 +52,16 @@ public class Graph_Algo {
             hidden.add(g.graph.get(var_name));
         }//get an Arraylist of the hidden variables
 
-        ArrayList<Vari> non_relevant = relevant_hidden(hidden, evi.keySet().stream().toList(), _qry_var);
+        ArrayList<Vari> non_relevant = relevant_hidden(hidden, new ArrayList<>(evi.keySet()), _qry_var);//remove the non relevant variables from the hidden list and save the nonrelevant
         evi.remove(_qry_var);
-        ArrayList<LinkedHashMap<String, Float>> _factors_list = new ArrayList<>();
-        LinkedHashMap<String, Float> factor;// = new LinkedHashMap<>();
+        ArrayList<LinkedHashMap<String, Float>> _factors_list = new ArrayList<>();//our list of factors
+        LinkedHashMap<String, Float> factor;
         factor = local_cpt(evi, _qry_var, non_relevant);
-        if(check_found(_qry_var,evi,hidden)){
+        if (check_found(_qry_var, evi, hidden)) {//checks if the query is possible to be obtained without the whole algorithm
             return factor.get(_qry);
         }
-//        if (factor.size() == _qry_var.outcomes.size() && evi.isEmpty()) {
-//            return _qry_var.CPT.get(_qry);
-//        }
         _factors_list.add(factor);
+        /*get the cpt's of all relevant variables*/
         for (Vari _var : evi.keySet()) {
             factor = local_cpt(evi, _var, non_relevant);
             if (factor != null && factor.size() > 1)
@@ -69,10 +73,8 @@ public class Graph_Algo {
             if (factor != null && factor.size() > 1)
                 _factors_list.add(factor);
         }
-        //sort_factors(_factors_list);
-        LinkedHashMap<String, Float> answer = null;//=join_factors(_factors_list.get(0),_factors_list.get(1),"A");
-        // ArrayList<LinkedHashMap<String, Float>> relevant_factors = new ArrayList<>();
-        PriorityQueue<LinkedHashMap<String, Float>> relevant_factors = create_queue();
+        LinkedHashMap<String, Float> answer;//=join_factors(_factors_list.get(0),_factors_list.get(1),"A");
+        PriorityQueue<LinkedHashMap<String, Float>> relevant_factors = create_queue();//creates a priority queue so the factors will be eliminated by the order given by the assignment
         for (Vari hid_var : hidden) {//check which factors to join
             Iterator<LinkedHashMap<String, Float>> factors_it = _factors_list.iterator();
             while (factors_it.hasNext()) {
@@ -82,21 +84,27 @@ public class Graph_Algo {
                     factors_it.remove();
                 }
             }
+            /*join all the factors and eliminate them afterwards*/
             while (relevant_factors.size() > 1) {
                 //sort_factors(relevant_factors);
-                answer = join_factors(relevant_factors.poll(), relevant_factors.poll(), hid_var.name);
+                answer = join_factors(relevant_factors.poll(), relevant_factors.poll());
                 relevant_factors.add(answer);
             }
-            _factors_list.add(eliminate_factor(relevant_factors.poll(), hid_var));
+                _factors_list.add(eliminate_factor(relevant_factors.poll(), hid_var));
         }
+        /*after we eliminated all the hidden variables were left to join the last remaining factors*/
         while (_factors_list.size() > 1) {
-            answer = join_factors(_factors_list.remove(0), _factors_list.remove(0), _qry_var.name);
+            answer = join_factors(_factors_list.remove(0), _factors_list.remove(0));
             _factors_list.add(answer);
         }
+        /* normalize the last factor and return the anwser*/
         answer = marginalize(_factors_list.remove(0));
         return answer.get(_qry);
     }
 
+    /**
+     * this function is used to marginalize the last factor remaining
+     */
     public LinkedHashMap<String, Float> marginalize(LinkedHashMap<String, Float> table) {
         Float sum = (float) 0.0;
         this.add--;
@@ -106,11 +114,13 @@ public class Graph_Algo {
         }
         for (Map.Entry<String, Float> entry : table.entrySet()) {
             entry.setValue(entry.getValue() / sum);
-            //value=value/sum;
         }
         return table;
     }
 
+    /**
+     * this function just creates and returns a priority queue which ordered by the terms given in the assignment
+     */
     public PriorityQueue<LinkedHashMap<String, Float>> create_queue() {
         return new PriorityQueue<>((Comparator) (o1, o2) -> {
             LinkedHashMap<String, Float> a = (LinkedHashMap<String, Float>) o1;
@@ -124,11 +134,11 @@ public class Graph_Algo {
                     String[] b_split = b.keySet().iterator().next().split(",");
                     String a_varis = "";
                     String b_varis = "";
-                    for (int i = 0; i < a_split.length; i++) {
-                        a_varis += a_split[i].split("=")[0];
+                    for (String s : a_split) {
+                        a_varis += s.split("=")[0];
                     }
-                    for (int i = 0; i < b_split.length; i++) {
-                        b_varis += b_split[i].split("=")[0];
+                    for (String s : b_split) {
+                        b_varis += s.split("=")[0];
 
                     }
                     return a_varis.compareTo(b_varis);
@@ -136,34 +146,13 @@ public class Graph_Algo {
             }
             return 1;
         });
-//        factor_list.sort((Comparator) (o1, o2) -> {
-//            LinkedHashMap<String, Float> a = (LinkedHashMap<String, Float>) o1;
-//            LinkedHashMap<String, Float> b = (LinkedHashMap<String, Float>) o2;
-//            if (a.size() < b.size())
-//                return -1;
-//            else {
-//
-//                if (a.size() == b.size()) {
-//                    String[] a_split = a.keySet().iterator().next().split(",");
-//                    String[] b_split = b.keySet().iterator().next().split(",");
-//                    String a_varis = "";
-//                    String b_varis = "";
-//                    for (int i = 0; i < a_split.length; i++) {
-//                        a_varis += a_split[i].split("=")[0];
-//                    }
-//                    System.out.println("WHATTTTT " + a_varis);
-//                    for (int i = 0; i < b_split.length; i++) {
-//                        b_varis += b_split[i].split("=")[0];
-//
-//                    }
-//                    System.out.println("WHATTTTTTTTTT " + b_varis);
-//                    return a_varis.compareTo(b_varis);
-//                }
-//            }
-//            return 1;
-//        });
     }
 
+    /**
+     * this function is used to find if the query at a possibility to return a value without the entire algorithm
+     * it iterates over all the parents of the query node and checks if all it's parents are in the evidence
+     *
+     */
     public boolean check_found(Vari _qry, HashMap<Vari, String> evi, ArrayList<Vari> hidden) {
         int counter = 0;
         for (Vari pt : _qry.parents) {
@@ -175,19 +164,12 @@ public class Graph_Algo {
         }
         return counter == evi.size();
     }
-//    public float check_cpt(String _qry,HashMap<Vari, String> evidence,Vari node){
-//        if(evidence.isEmpty()||node.parents.size()==0){
-//            return node.CPT.get(_qry);
-//        }
-//
-//    }
 
     /**
      * this function gets each node's CPT with correspondent to the evidence ,in which are local CPT's
      *
      * @param evidence- a hashmap of the evidence nodes and their corresponding values ,example : B,T
      * @param node-     a node on which were trying to get the cpt
-     * @return
      */
     public LinkedHashMap<String, Float> local_cpt(HashMap<Vari, String> evidence, Vari node, ArrayList<Vari> non_relevant) {
         HashMap<Vari, String> relevant_evi = new HashMap<>(evidence);
@@ -197,7 +179,6 @@ public class Graph_Algo {
             }
         }
         String check = node.CPT.keySet().iterator().next();
-
         for (Vari non_rel : non_relevant) {// we need to find if this CPT contains a non relevant node , if so , dont add it to the factor list
             if (check.contains(non_rel.name)) {
                 return null;
@@ -206,18 +187,15 @@ public class Graph_Algo {
         if (relevant_evi.isEmpty())//if the evidence is empty it means that this CPT only column is the node itself
             return node.CPT;
         LinkedHashMap<String, Float> factor = new LinkedHashMap<>();
-        String new_key;
-        String valued;
-        boolean flag = true;
+        String new_key;//new key without the relevant evidence
+        String valued;//the evidence+value
+        boolean flag;//this flag is used to see if the entry ("row") contains the entire evidence and query
         for (Map.Entry<String, Float> entry : node.CPT.entrySet()) {//iterate over all of the CPT entries
             flag = true;
             new_key = entry.getKey();
             for (Map.Entry<Vari, String> evi : relevant_evi.entrySet()) {//get only the row which corresponding to all the evidence
                 valued = evi.getKey().name + '=' + evi.getValue();
                 if (entry.getKey().contains(valued)) {
-                    //new_key=
-                    //new_key = entry.getKey();
-                    //new_key = new_key.replace(evi.getKey().name + '=' + evi.getValue() + ",", "");
                     new_key = getString(new_key, valued);
                 } else {
                     flag = false;
@@ -231,6 +209,9 @@ public class Graph_Algo {
         return factor;
     }
 
+    /**
+     * just a syntax function used to get a key without a ','
+     */
     private String getString(String new_key, String valued) {
         if (new_key.contains(',' + valued + ',')) {
             new_key = new_key.replace(valued + ',', "");
@@ -254,32 +235,28 @@ public class Graph_Algo {
      *
      * @param table1-CPT table (hashmap)
      * @param table2-CPT table(hashmap
-     * @param qry-hidden variable
-     * @return
      */
-    public LinkedHashMap<String, Float> join_factors(LinkedHashMap<String, Float> table1, LinkedHashMap<String, Float> table2, String qry) {
+    public LinkedHashMap<String, Float> join_factors(LinkedHashMap<String, Float> table1, LinkedHashMap<String, Float> table2) {
         LinkedHashMap<String, Float> answer = new LinkedHashMap<>();
-        List<String> varis_f, varis = new ArrayList<>();
-        List<Map.Entry<String, Float>> f_keys = table1.entrySet().stream().toList();
-        String t = table2.keySet().iterator().next();
+        List<String> varis_f, varis = new ArrayList<>();//variables for first and second table
+        List<Map.Entry<String, Float>> f_keys = new ArrayList<>(table1.entrySet());//keys of all the rows in the first table
+        String t = table2.keySet().iterator().next();//random row from table 2
         ArrayList<String> vari_values = new ArrayList<>();
         String key, hash;
         int idx;
-        varis_f = Arrays.stream(f_keys.get(0).getKey().split(",")).toList();//these 5 lines are to check which multiple variable are the same in both tables
+        varis_f = Arrays.stream(f_keys.get(0).getKey().split(",")).collect(Collectors.toList());//these 5 lines are to check which multiple variable are the same in both tables
         for (String st : varis_f) {
             idx = st.indexOf('=');
             if (t.contains(st.substring(0, idx + 1)))
                 varis.add(st.substring(0, idx));
         }
-        boolean flag = true;
-        String temp;
+        boolean flag = true;//this flag is used to check the equality between each 2 rows
+        String temp;//a String to recieve the node and value of corresponding variables in the row
         for (Map.Entry<String, Float> key_f : f_keys) {
             hash = key_f.getKey() + ',';//get the string of the entry
             for (String vari : varis) {
                 idx = hash.indexOf(vari);
                 if (hash.contains(",")) {
-                    //  System.out.println("index of , ::  "+hash.indexOf(',',idx)+"                     "+hash+"  index of vari: "+idx);
-                    // System.out.println(vari);
                     key = hash.substring(idx, hash.indexOf(',', idx));
                 }//get the "A=T" from the substring for each corresponding variable
                 else {
@@ -287,7 +264,7 @@ public class Graph_Algo {
                 }
                 vari_values.add(key);
             }
-            for (Map.Entry<String, Float> s_key : table2.entrySet().stream().toList()) {
+            for (Map.Entry<String, Float> s_key : new ArrayList<>(table2.entrySet())) {
                 temp = s_key.getKey();
                 for (String value : vari_values) {
                     if (!temp.contains(value)) {//if it doesent contains the value that means that the current entry does not have equal values on all variables
@@ -295,44 +272,18 @@ public class Graph_Algo {
                         temp = "";
                         break;
                     } else {
-                        //temp=temp.replace(value,"");
-//                        if(temp.equals(",,"))
-//                            temp="";
-//                        if(temp.contains(",,"))
-//                            temp=temp.replace(",,","");
-//
-                        temp = getString(temp, value);//TODO: contains ",,"
+                        temp = getString(temp, value);
                     }
                 }
                 if (flag) {
-                    //if(hash.charAt(hash.length()-1)==',')
-                    //String var=temp.split("=")[0];
-                    //if((table1.size()>2||table2.size()>2)&&(!temp.contains(",'"))){
-                    //  if(temp.indexOf(',')==temp.length()-1){
-                    //temp=temp.substring(0,temp.length()-1);
-                    // hash+=temp;
-                    //hash=temp+hash;
-                    //   }
-                    //else {
-//                             if(temp.indexOf(',')==temp.length()-1){
-//                            temp.replace(",","");
-//                            hash+=temp;
-//                        }
                     hash += temp;
-                    //}
-                    //else{
-                    //    hash+=','+temp;
-                    //}
                     if (hash.charAt(hash.length() - 1) == ',')
                         hash = hash.substring(0, hash.length() - 1);
                     answer.put(hash, key_f.getValue() * s_key.getValue());
                     hash = key_f.getKey() + ',';
-                    //String message = String.format("%f%n", (key_f.getValue() * s_key.getValue()));
-                    // System.out.println((hash + "=" + message));
                     this.doubs++;
                 }
                 flag = true;
-                //hash="";
             }
             vari_values.clear();
         }
@@ -367,10 +318,8 @@ public class Graph_Algo {
         // Mark the current node as visited and enqueue it
         Set<Vari> visited = new HashSet<>();
         ArrayList<Vari> came_child = new ArrayList<>();
-        //visited.add(node);
         queue.add(node);
         ArrayList<Vari> neis = new ArrayList<>();//adj[s] (as in bfs) but we need to know to put the correct nodes each time
-        // neis = node.children;//add all the children to the neighbors of the start node
         came_child.add(node);//"came from a child so it can go to its parents"
         while (queue.size() != 0) {
             // Dequeue a vertex from queue and print it
@@ -381,7 +330,6 @@ public class Graph_Algo {
                 }
                 came_child.addAll(node.parents);//add parents to came child so in time they will be added to the queue
                 neis.addAll(node.parents);//adding the parents as neighbors of a node
-                // neis = node.parents;
             } else {
                 if (came_child.contains(node)) {//add all parents to the neighbors of the
                     neis.addAll(node.parents);
@@ -408,9 +356,6 @@ public class Graph_Algo {
     /**
      * This function eliminates the hidden variable from a factor after we joined all of it's corresponding factors
      *
-     * @param table
-     * @param hidden
-     * @return
      */
     public LinkedHashMap<String, Float> eliminate_factor(LinkedHashMap<String, Float> table, Vari hidden) {
         LinkedHashMap<String, Float> answer = new LinkedHashMap<>();
@@ -432,6 +377,7 @@ public class Graph_Algo {
                 key = key.replace(hidden.name + '=' + outs.get(j - 1), hidden.name + '=' + outs.get(j));//change the outcome
                 visited.add(key);
                 _prob += table.get(key);//add the table value
+                this.add++;
             }
             if (key.contains(hidden.name + '=' + outs.get(outs.size() - 1) + ',')) {
                 key = key.replace(hidden.name + '=' + outs.get(outs.size() - 1) + ',', "");
@@ -441,7 +387,6 @@ public class Graph_Algo {
             if (key.charAt(key.length() - 1) == ',')
                 key = key.substring(0, key.length() - 1);
             answer.put(key, _prob);
-            this.add++;
             _prob = (float) 0;
             it = keys.next();
         }
@@ -461,7 +406,7 @@ public class Graph_Algo {
         String[] spl_evi_eli = split[1].split("\\)");//split the elimination and the evidence
         String[] evi = spl_evi_eli[0].split(",");
         String[] eli_seq_p = spl_evi_eli[1].split("-"); //elimination sequence
-        eli_seq_p[0] = eli_seq_p[0].substring(1, eli_seq_p[0].length());//in the first character there is a space
+        eli_seq_p[0] = eli_seq_p[0].substring(1);//in the first character there is a space
         ArrayList<String> qry_evi = new ArrayList<>();
         ArrayList<String> eli_seq = new ArrayList<>(Arrays.asList(eli_seq_p));
         ArrayList<ArrayList<String>> rtrn = new ArrayList<>();
@@ -475,15 +420,11 @@ public class Graph_Algo {
     /**
      * this function gets an arraylist of the hidden variables and gets the relevant(query+evidence) variables
      * and removes any non-relevant variables
-     *
-     * @param hidden
-     * @param
-     * @return
+     * @param hidden- hidden nodes
+     * @param relevant -relevant nodes
+     * @return- array list of only relevant nodes
      */
     public ArrayList<Vari> relevant_hidden(ArrayList<Vari> hidden, List<Vari> relevant, Vari query) {
-        //List<Vari> relevant=rel;
-        //Vari query=relevant.get(0);//query node
-        //ArrayList<Vari> rel=new ArrayList<>(hidden);
         ArrayList<Vari> non_relevant = new ArrayList<>();
         Iterator<Vari> it = hidden.iterator();
         Vari node;
@@ -493,7 +434,7 @@ public class Graph_Algo {
                 non_relevant.add(node);
                 it.remove();
             } else {
-                if (bayes_ball_imp(node, query, relevant)) {
+                if (bayes_ball_imp(node, query, relevant)) {//pretty self-explanatory
                     non_relevant.add(node);
                     it.remove();
                 }
@@ -502,15 +443,18 @@ public class Graph_Algo {
         return non_relevant;
     }
 
+    /**
+     * this is a recursive function which iterates over the family tree of a node
+     * and see if it is an ancestor of a relevant node
+     */
     public boolean find_ancestor(Vari hidden, List<Vari> relevant) {
-        boolean flag=false;
+        boolean flag = false;
         if (hidden.children.stream().anyMatch(relevant::contains))
             return true;
         else {
             for (Vari child : hidden.children) {
-                flag=find_ancestor(child,relevant);
-                //return find_ancestor(child, relevant);
-                if(flag)
+                flag = find_ancestor(child, relevant);
+                if (flag)
                     break;
             }
         }
